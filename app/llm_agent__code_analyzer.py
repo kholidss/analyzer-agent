@@ -18,25 +18,21 @@ class PRAnalyzer:
         self.llm = OllamaLLM(model=model_name)
         self.prompt = None
         self.analysis_prompt = (
-            "Give a simple and helpful review of this Pull Request.\n\n"
-            "Use a casual, friendly tone. Keep it short and to the point.\n\n"
-            "Respond in bullet points using emoji.\n\n"
-            "Focus on:\n"
-            "- ✅ What’s being changed (brief summary)\n"
-            "- 👍 What looks good / improved\n"
-            "- ⚠️ Any concerns or possible issues\n"
-            "- 🔐 Potential security risks (e.g., exposed secrets, unsafe logic)\n"
-            "- 🔑 **Sensitive Data Check**: Ensure no sensitive data such as passwords, email addresses, phone numbers, or other PII (Personally Identifiable Information) is being logged, stored, or handled insecurely. "
-            "Make sure any sensitive information is encrypted before storing or logging.\n\n"
-            "**this is considered highly secure and should not be flagged**. "
-            "- ♻️ **Redundant Code Check**: Check if there are any sections of code that are redundant, repeated, or could be simplified without losing functionality. Redundant code should be refactored to improve maintainability.\n\n"
-            "❗ Do not ask any follow-up questions at the end.\n\n"
-            "🎯 Finally, provide a score (0–100) based on the following criteria:\n"
-            "- **Simplicity of Code**: Are the changes simple and clear, without redundant complexity? (Score 0–40)\n"
-            "- **Security**: Is the code secure with no major security risks? (Score 0–30)\n"
-            "- **Sensitive Data Logging**: Are sensitive data (passwords, emails, PII) logged inappropriately? "
-            "(Score 0–30, major penalty for exposed sensitive data)"
+        "Please review this Pull Request in a **simple, friendly, and helpful** tone.\n\n"
+        "Keep your response concise and use bullet points with emojis.\n\n"
+        "Focus your review on the following areas:\n"
+        "- ✅ **Summary**: What’s being changed (brief and clear overview).\n"
+        "- 👍 **What’s Good**: Improvements, cleanups, or enhancements.\n"
+        "- ⚠️ **Concerns**: Potential issues, confusing logic, or edge cases.\n"
+        "- 🔐 **Security Review**: Look for unsafe patterns (e.g., hardcoded secrets, unsafe use of external input, missing validation).\n"
+        "- 🔑 **Sensitive Data Handling**: Ensure **no PII** (passwords, emails, phone numbers) is logged or stored insecurely. Highlight any area where encryption or redaction should be applied.\n"
+        "❗ Please **do not** ask follow-up questions or request clarification.\n\n"
+        "🎯 End with a review **score (0–100)** based on:\n"
+        "- **Code Simplicity (0–40)**: Clear, concise, and maintainable?\n"
+        "- **Security (0–30)**: Any major vulnerabilities?\n"
+        "- **Sensitive Data Safety (0–30)**: Any improper exposure or logging of sensitive info?\n"
         )
+
 
     def exec_evaluate(self, param: ParamCodeAnalyzerEvaluate) -> str:
         chain: RunnableSequence = self.prompt | self.llm
