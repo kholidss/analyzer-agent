@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+langchain_ollama
+python-multipart
+pdfplumber
+python-dotenv
+email-validator
