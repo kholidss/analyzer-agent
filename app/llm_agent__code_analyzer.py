@@ -25,8 +25,17 @@ class PRAnalyzer:
             "- ✅ What’s being changed (brief summary)\n"
             "- 👍 What looks good / improved\n"
             "- ⚠️ Any concerns or possible issues\n"
-            "- 🔐 Potential security risks (e.g., exposed secrets, unsafe logic)\n\n"
-            "Make it feel like a teammate giving quick, thoughtful feedback. Avoid long explanations."
+            "- 🔐 Potential security risks (e.g., exposed secrets, unsafe logic)\n"
+            "- 🔑 **Sensitive Data Check**: Ensure no sensitive data such as passwords, email addresses, phone numbers, or other PII (Personally Identifiable Information) is being logged, stored, or handled insecurely. "
+            "Make sure any sensitive information is encrypted before storing or logging.\n\n"
+            "**this is considered highly secure and should not be flagged**. "
+            "- ♻️ **Redundant Code Check**: Check if there are any sections of code that are redundant, repeated, or could be simplified without losing functionality. Redundant code should be refactored to improve maintainability.\n\n"
+            "❗ Do not ask any follow-up questions at the end.\n\n"
+            "🎯 Finally, provide a score (0–100) based on the following criteria:\n"
+            "- **Simplicity of Code**: Are the changes simple and clear, without redundant complexity? (Score 0–40)\n"
+            "- **Security**: Is the code secure with no major security risks? (Score 0–30)\n"
+            "- **Sensitive Data Logging**: Are sensitive data (passwords, emails, PII) logged inappropriately? "
+            "(Score 0–30, major penalty for exposed sensitive data)"
         )
 
     def exec_evaluate(self, param: ParamCodeAnalyzerEvaluate) -> str:
@@ -52,7 +61,11 @@ class PRAnalyzer:
             return
 
         if analysis_goal:
-            self.analysis_prompt = analysis_goal
+            self.analysis_prompt = (
+                analysis_goal
+                + "\n\n❗ Do not ask any follow-up questions at the end."
+                + "\n\n🎯 Finally, provide a score (0–100) for the overall quality of the code changes."
+            )
 
         self.prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(

@@ -40,21 +40,34 @@ async def analizer_github(payload: AnalyzePRPayload, background_tasks: Backgroun
         f"### {f['filename']}\n{f.get('patch', '[no diff]')}" for f in files if f.get("patch")
     )
 
-    background_tasks.add_task(background_analizer_code_process, title, body, patch_text)
+    print("payload ==>>> ", payload)
+
+    background_tasks.add_task(background_analizer_code_process, title, body, patch_text, payload.repository, payload.pr_number)
     return {"status": "processed"}
 
 
-async def background_analizer_code_process(title: str, body: str, changes_code: str):
+async def background_analizer_code_process(title: str, body: str, changes_code: str, repository_name: str, pr_number: int, repository_type: str = "github"):
     print("⏳ Start background analyzer code task...")
 
     def sync_llm_eval():
         analyzer = PRAnalyzer()
         analyzer.set_prompt(type="evaluate")
-        return analyzer.exec_evaluate(ParamCodeAnalyzerEvaluate(
+        print("changes ==>>> ", changes_code)
+        
+        # Menambahkan link PR ke dalam hasil analisis
+        result = analyzer.exec_evaluate(ParamCodeAnalyzerEvaluate(
             pr_title=title,
             pr_body=body,
             pr_patch=changes_code
         ))
+        
+        return f"Request Link: {build_request_changes_link(repository_type, repository_name, pr_number)}\n\n{result}"
 
     result = await run_in_threadpool(sync_llm_eval)
     print("result ==>>> ", result)
+
+def build_request_changes_link(repository_type: str = "github", repository_name: str = "", pr_number: int = 0) -> str:
+    if repository_type == "github":
+        return f"https://github.com/{repository_name}/pull/{pr_number}"
+    
+    return ""
