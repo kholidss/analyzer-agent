@@ -3,12 +3,12 @@ from app.connector.connector__github_api import *
 from app.entity.entity__base_response import AppCtxResponse
 from app.entity.entity__code_review import GithubReviewerRequest
 from fastapi import BackgroundTasks
-import anyio
 
 from app.logger import AppCtxLogger
 from app.transform import class_to_dict
 from app.worker.worker__process_code_analyzer import *
 from fastapi.concurrency import run_in_threadpool
+from app.util.context import *
 
 
 class CodeReviewService:
@@ -19,6 +19,7 @@ class CodeReviewService:
 
     async def github_reviewer(self, request: GithubReviewerRequest, background_tasks: BackgroundTasks):
         lg = AppCtxLogger()
+        lg.event_name("ServiceGithubReviewer")
         lg.field("req", class_to_dict(request))
         ctxResp = AppCtxResponse()
 

@@ -3,6 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import config
 from app.core.container import Container
+from app.middleware.middleware__request_id import RequestContextMiddleware
 from app.util.class_object import singleton
 from app.router.v1.base_router import routers as v1_route
 
@@ -14,6 +15,9 @@ class AppContext:
         self.app = FastAPI(
             title=config.APP_NAME,
         )
+
+        # reques_id middlewar
+        self.app.add_middleware(RequestContextMiddleware)
 
         # set db and container
         self.container = Container()

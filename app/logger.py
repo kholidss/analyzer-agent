@@ -3,6 +3,9 @@ import structlog
 import sys
 import inspect
 from typing import Any, List
+from app.util.context import *
+
+
 
 class Field:
     def __init__(self, key: str, value: Any):
@@ -21,7 +24,6 @@ class Fields:
 
     def to_dict(self):
         return {field.key: field.value for field in self.fields}
-    
 
 def add_caller_info(logger, method_name, event_dict):
     for frame_info in inspect.stack():
@@ -63,6 +65,9 @@ class AppCtxLogger:
             cache_logger_on_first_use=True,
         )
 
+    def event_name(self, name: str):
+        self.fields.append("name", name)
+
     def field(self, key: str, value: Any):
         self.fields.append(key, value)
 
@@ -77,12 +82,17 @@ class AppCtxLogger:
 
     def debug(self, message, **kwargs):
         self._stdout("debug", message, **kwargs)
-    
+
     def _stdout(self, level, message, **kwargs):
         for key, value in kwargs.items():
             self.fields.append(key, value)
 
+        log_data = {
+            "prerequest": {
+                "request_id": request_id_ctx.get()
+            },
+            "event": self.fields.to_dict()
+        }
+
         log_method = getattr(self.logger, level.lower(), self.logger.info)
-
-        log_method(message=message, event=self.fields.to_dict())
-
+        log_method(message=message, **log_data)

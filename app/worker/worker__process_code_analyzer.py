@@ -46,7 +46,7 @@ class CodeAnalyzerWorker():
 
         comment_pr_payload = CommentOnPRPayload(repo_name=payload.repo_name, pr_number=payload.pr_number, token=payload.access_token, description=result)
 
-        self.github_api_conn.do_comment_on_pr(comment_pr_payload)
+        # self.github_api_conn.do_comment_on_pr(comment_pr_payload)
     
     def _build_request_changes_link(self, payload: TaskAnalyzerCodePayload) -> str:
         if payload.repo_type == "github":
