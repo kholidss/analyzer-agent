@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from app.agent.base_agent import BaseAgent
 
 @dataclass
-class ParamCodeAnalyzerEvaluate:
+class CodeAnalyzerEvaluateParam:
     pr_title: str
     pr_body: str
     pr_patch: str
@@ -30,7 +30,7 @@ class CodeAnalyzer(BaseAgent):
         )
 
 
-    def exec_evaluate(self, param: ParamCodeAnalyzerEvaluate) -> str:
+    def exec_evaluate(self, param: CodeAnalyzerEvaluateParam) -> str:
         chain: RunnableSequence = self.prompt | self.llm
         return chain.invoke({
             "pr_title": param.pr_title,
