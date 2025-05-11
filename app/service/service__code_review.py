@@ -3,12 +3,12 @@ from app.connector.connector__github_api import *
 from app.entity.entity__base_response import AppCtxResponse
 from app.entity.entity__code_review import GithubReviewerRequest
 from fastapi import BackgroundTasks
-from fastapi.concurrency import run_in_threadpool
 import anyio
 
 from app.logger import AppCtxLogger
 from app.transform import class_to_dict
 from app.worker.worker__process_code_analyzer import *
+from fastapi.concurrency import run_in_threadpool
 
 
 class CodeReviewService:
@@ -27,18 +27,17 @@ class CodeReviewService:
         except Exception as e:
             lg.error("call github api got error", error=e)
             return ctxResp.with_code(500).json()
+        
+        worker_payload = TaskAnalyzerCodePayload(
+            title=resp_github_api.title,
+            body=resp_github_api.body,
+            changes_code=resp_github_api.patch_text,
+            repo_name=request.repository,
+            repo_type="github",
+            pr_number=request.pr_number
+        )
 
-        background_tasks.add_task(anyio.run, _run_async_background_task, self.code_analyzer_worker.task_analizer_code(
-            TaskAnalyzerCodePayload(
-                title=resp_github_api.title,
-                body=resp_github_api.body,
-                changes_code=resp_github_api.patch_text,
-                repo_name=request.repository,
-                repo_type="github",
-                pr_number=request.pr_number
-            )))
+        background_tasks.add_task(run_in_threadpool, self.code_analyzer_worker.task_analizer_code, worker_payload)
+
         lg.info("success processed task agent analizer code")
         return ctxResp.with_code(201).with_data({"status": "processed"}).json()
-
-async def _run_async_background_task(coro):
-    await coro
