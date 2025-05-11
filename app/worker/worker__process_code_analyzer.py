@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from app.agent.agent__code_analyzer import *
-import httpx
+from app.logger import AppCtxLogger
 
 from app.connector.connector__github_api import CommentOnPRPayload, GithubAPIConnector
 
@@ -29,8 +29,11 @@ class CodeAnalyzerWorker():
         self.github_api_conn = github_api_conn
 
     def task_analizer_code(self, payload: TaskAnalyzerCodePayload):
-        print("⏳ Start background analyzer code task...")
-        print(payload.changes_code)
+        lg = AppCtxLogger()
+        lg.event_name("TaskAnalizerCode")
+        lg.field("payload.repo_name", payload.repo_name)
+        lg.field("payload.pr_number", payload.pr_number)
+
         self.code_analize_agent.set_prompt(type="evaluate")
         evaluated_result = self.code_analize_agent.exec_evaluate(CodeAnalyzerEvaluateParam(
             pr_title=payload.title,
@@ -42,7 +45,7 @@ class CodeAnalyzerWorker():
         result += f"Authored by: {payload.author}\n\n"
         result += f"{evaluated_result}"
 
-        print("result ==>>> ", result)
+        lg.info("finished task")
 
         comment_pr_payload = CommentOnPRPayload(repo_name=payload.repo_name, pr_number=payload.pr_number, token=payload.access_token, description=result)
 

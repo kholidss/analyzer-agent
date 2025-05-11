@@ -5,6 +5,7 @@ from app.connector.base_connector import BaseConnector
 import httpx
 
 from app.core.config import config
+from app.logger import AppCtxLogger
 
 @dataclass
 class GetPRMetaPayload:
@@ -32,6 +33,11 @@ class GithubAPIConnector(BaseConnector):
         self.base_url: str = config.GITHUB_API_BASE_URL
 
     async def get_pr_meta(self, payload: GetPRMetaPayload) -> GetPRMetaResponse:
+        lg = AppCtxLogger()
+        lg.event_name("ConnectorGithubGetPRMeta")
+        lg.field("payload.repo_name", payload.repo_name)
+        lg.field("payload.pr_number", payload.pr_number)
+        
         h = {
             "Authorization": f"Bearer {payload.token}",
             "Accept": "application/vnd.github+json"
@@ -55,9 +61,17 @@ class GithubAPIConnector(BaseConnector):
             patch_text=patch_text,
             author=pr_meta.get("user", {}).get("login", "[unknown]")
         )
+
+        lg.info("success call github api")
+
         return res
     
     def do_comment_on_pr(self, payload: CommentOnPRPayload):
+        lg = AppCtxLogger()
+        lg.event_name("ConnectorGithubDoCommentOnPR")
+        lg.field("payload.repo_name", payload.repo_name)
+        lg.field("payload.pr_number", payload.pr_number)
+
         headers = {
             "Authorization": f"Bearer {payload.token}",
             "Accept": "application/vnd.github+json"
@@ -65,3 +79,4 @@ class GithubAPIConnector(BaseConnector):
 
         url = f"https://api.github.com/repos/{payload.repo_name}/issues/{payload.pr_number}/comments"
         httpx.post(url, headers=headers, json={"body": payload.description})
+        lg.info("success call github api")

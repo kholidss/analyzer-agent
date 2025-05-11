@@ -2,9 +2,8 @@ import logging
 import structlog
 import sys
 import inspect
-from typing import Any, List
-from app.util.context import *
-
+from typing import Any, List, Dict
+from app.util.context import request_id_ctx
 
 
 class Field:
@@ -12,8 +11,6 @@ class Field:
         self.key = key
         self.value = value
 
-    def to_dict(self):
-        return {self.key: self.value}
 
 class Fields:
     def __init__(self):
@@ -22,8 +19,21 @@ class Fields:
     def append(self, key: str, value: Any):
         self.fields.append(Field(key, value))
 
-    def to_dict(self):
-        return {field.key: field.value for field in self.fields}
+    def to_dict(self) -> Dict[str, Any]:
+        result = {}
+        for field in self.fields:
+            self._merge_dict(result, field.key, field.value)
+        return result
+
+    def _merge_dict(self, base: Dict[str, Any], dotted_key: str, value: Any):
+        parts = dotted_key.split(".")
+        current = base
+        for part in parts[:-1]:
+            if part not in current or not isinstance(current[part], dict):
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
+
 
 def add_caller_info(logger, method_name, event_dict):
     for frame_info in inspect.stack():
