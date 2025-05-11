@@ -13,5 +13,9 @@ path_code_review = APIRouter(
 @path_code_review.post("/github")
 @inject
 async def github_reviewer(req: GithubReviewerRequest, background_tasks: BackgroundTasks, service: CodeReviewService = Depends(Provide[Container.code_review_svc])):
-    return await service.github_reviewer(req, background_tasks)
+    try:
+        return await service.github_reviewer(req, background_tasks)
+    except Exception as e:
+        ctxResp = AppCtxResponse()
+        return ctxResp.with_code(500).json()
 
