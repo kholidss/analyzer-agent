@@ -1,7 +1,10 @@
-fastapi
-uvicorn[standard]
-langchain_ollama
-python-multipart
-pdfplumber
-python-dotenv
-email-validator
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+langchain_ollama==0.3.2
+python-multipart==0.0.20
+pdfplumber==0.11.6
+python-dotenv==1.1.0
+dependency-injector==4.39.1
+pydantic-settings==2.9.1
+dependency-injector==4.39.1
+structlog==25.3.0

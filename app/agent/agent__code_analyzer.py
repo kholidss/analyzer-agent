@@ -1,7 +1,8 @@
-from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
 from langchain_core.runnables import RunnableSequence
 from dataclasses import dataclass
+
+from app.agent.base_agent import BaseAgent
 
 @dataclass
 class ParamCodeAnalyzerEvaluate:
@@ -9,15 +10,10 @@ class ParamCodeAnalyzerEvaluate:
     pr_body: str
     pr_patch: str
 
-@dataclass
-class ParamCodeAnalyzerTrain:
-    train_prompt: str
-
-class PRAnalyzer:
-    def __init__(self, model_name: str = "gemma3:1b"):
-        self.llm = OllamaLLM(model=model_name)
-        self.prompt = None
-        self.analysis_prompt = (
+class CodeAnalyzer(BaseAgent):
+    def __init__(self, model_name: str) -> None:
+        super().__init__(model_name=model_name)
+        self.analysis_prompt: str = (
         "Please review this Pull Request in a **simple, friendly, and helpful** tone.\n\n"
         "Keep your response concise and use bullet points with emojis.\n\n"
         "Focus your review on the following areas:\n"
@@ -41,12 +37,6 @@ class PRAnalyzer:
             "pr_body": param.pr_body,
             "pr_patch": param.pr_patch,
             "analysis_prompt": self.analysis_prompt
-        })
-
-    def train(self, param: ParamCodeAnalyzerTrain) -> str:
-        chain: RunnableSequence = self.prompt | self.llm
-        return chain.invoke({
-            "train_prompt": param.train_prompt
         })
 
     def set_prompt(self, type: str = "evaluate", analysis_goal: str = ""):
