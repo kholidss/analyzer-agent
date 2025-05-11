@@ -1,24 +1,25 @@
 import httpx
 from app.agent.agent__code_analyzer import *
+from app.connector.connector__github_api import *
+from app.core.config import config
 from app.entity.entity__base_response import AppCtxResponse
 from app.entity.entity__code_review import GithubReviewerRequest
 from fastapi import BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 import asyncio
-import structlog
 
 from app.logger import AppCtxLogger
+from app.transform import class_to_dict
 
 
 class CodeReviewService:
-    def __init__(self, code_analize_agent: CodeAnalyzer):
+    def __init__(self, code_analize_agent: CodeAnalyzer, github_api_conn: GithubAPIConnector):
         self.code_analize_agent = code_analize_agent
+        self.github_api_conn = github_api_conn
 
     async def github_reviewer(self, request: GithubReviewerRequest, background_tasks: BackgroundTasks):
         lg = AppCtxLogger()
-
-        lg.field("sopo", "Jarwo")
-        lg.field("abdul", "Manap")
+        lg.field("req", class_to_dict(request))
 
         ctxResp = AppCtxResponse()
         headers = {
@@ -27,30 +28,17 @@ class CodeReviewService:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                pr_meta_resp, files_resp = await asyncio.gather(
-                    client.get(f"https://api.github.com/repos/{request.repository}/pulls/{request.pr_number}", headers=headers),
-                    client.get(f"https://api.github.com/repos/{request.repository}/pulls/{request.pr_number}/files", headers=headers),
-                )
-                pr_meta = pr_meta_resp.json()
-                files = files_resp.json()
-
-            title = pr_meta.get("title", "")
-            body = pr_meta.get("body", "")
-
-            patch_text = "\n\n".join(
-                f"### {f['filename']}\n{f.get('patch', '[no diff]')}" for f in files if f.get("patch")
-            )
+            resp_github_api = await self.github_api_conn.get_pr_meta(GetPRMetaPayload(request.repository,request.pr_number,request.token))
         except Exception as e:
-            lg.error("call github api got errpr", error=e)
+            lg.error("call github api got error", error=e)
             return ctxResp.with_code(500).json()
 
-        background_tasks.add_task(self.background_analizer_code_process, title, body, patch_text, request.repository, request.pr_number)
+        background_tasks.add_task(self._background_analizer_code_process, resp_github_api.title, resp_github_api.body, resp_github_api.patch_text, request.repository, request.pr_number)
         lg.info("success processed task agent analizer code")
         return ctxResp.with_code(201).with_data({"status": "processed"}).json()
 
 
-    async def background_analizer_code_process(self, title: str, body: str, changes_code: str, repository_name: str, pr_number: int, repository_type: str = "github"):
+    async def _background_analizer_code_process(self, title: str, body: str, changes_code: str, repository_name: str, pr_number: int, repository_type: str = "github"):
         print("⏳ Start background analyzer code task...")
         def sync_llm_eval():
             self.code_analize_agent.set_prompt(type="evaluate")

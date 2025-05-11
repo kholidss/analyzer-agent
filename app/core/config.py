@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -16,6 +15,9 @@ class Config(BaseSettings):
 
     # LLM
     LLM_MODEL_COMMON: str = os.getenv("LLM_COMMON_MODEL", "gemma3:1b")
+
+    # GITHUB
+    GITHUB_API_BASE_URL: str = os.getenv("GITHUB_API_BASE_URL", "")
 
     class Config:
         case_sensitive = True
