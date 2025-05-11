@@ -33,8 +33,10 @@ class CodeReviewService:
             body=resp_github_api.body,
             changes_code=resp_github_api.patch_text,
             repo_name=request.repository,
+            pr_number=request.pr_number,
+            author=resp_github_api.author,
+            access_token=request.token,
             repo_type="github",
-            pr_number=request.pr_number
         )
 
         background_tasks.add_task(run_in_threadpool, self.code_analyzer_worker.task_analizer_code, worker_payload)

@@ -16,14 +16,14 @@ class Container(containers.DeclarativeContainer):
 
     # db = providers.Singleton(Database, db_url=configs.DATABASE_URI)
 
+    # Connector
+    github_api_conn = providers.Singleton(GithubAPIConnector)
+
     # LLM Agent
     code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_MODEL_COMMON)
 
     # Worker dispatcher
-    code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analyzer_agent)
-
-    # Connector
-    github_api_conn = providers.Singleton(GithubAPIConnector)
+    code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)
 
     # Service
     code_review_svc = providers.Singleton(

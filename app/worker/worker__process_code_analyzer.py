@@ -1,15 +1,20 @@
 from dataclasses import dataclass
 
 from app.agent.agent__code_analyzer import *
+import httpx
+
+from app.connector.connector__github_api import CommentOnPRPayload, GithubAPIConnector
 
 
 @dataclass
 class TaskAnalyzerCodePayload:
     title: str
     body: str
+    author: str
     changes_code: str
     repo_name: str
     pr_number: int
+    access_token: str
     repo_type: str = "github"
 
 @dataclass
@@ -19,20 +24,29 @@ class GetPRMetaResponse:
     patch_text: str
 
 class CodeAnalyzerWorker():
-    def __init__(self, code_analize_agent: CodeAnalyzer):
+    def __init__(self, code_analize_agent: CodeAnalyzer, github_api_conn: GithubAPIConnector):
         self.code_analize_agent = code_analize_agent
+        self.github_api_conn = github_api_conn
 
     def task_analizer_code(self, payload: TaskAnalyzerCodePayload):
         print("⏳ Start background analyzer code task...")
         print(payload.changes_code)
         self.code_analize_agent.set_prompt(type="evaluate")
-        result = self.code_analize_agent.exec_evaluate(CodeAnalyzerEvaluateParam(
+        evaluated_result = self.code_analize_agent.exec_evaluate(CodeAnalyzerEvaluateParam(
             pr_title=payload.title,
             pr_body=payload.body,
             pr_patch=payload.changes_code
         ))
 
-        print("result ==>>> ", self._build_request_changes_link(payload), "\n", result)
+        result = f"Changes link: {self._build_request_changes_link(payload)}\n"
+        result += f"Authored by: {payload.author}\n\n"
+        result += f"{evaluated_result}"
+
+        print("result ==>>> ", result)
+
+        comment_pr_payload = CommentOnPRPayload(repo_name=payload.repo_name, pr_number=payload.pr_number, token=payload.access_token, description=result)
+
+        self.github_api_conn.do_comment_on_pr(comment_pr_payload)
     
     def _build_request_changes_link(self, payload: TaskAnalyzerCodePayload) -> str:
         if payload.repo_type == "github":

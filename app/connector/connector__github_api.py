@@ -17,6 +17,14 @@ class GetPRMetaResponse:
     title: str
     body: str
     patch_text: str
+    author: str
+
+@dataclass
+class CommentOnPRPayload:
+    repo_name: str
+    pr_number: str
+    token: str
+    description: str
 
 class GithubAPIConnector(BaseConnector):
     def __init__(self) -> None:
@@ -44,6 +52,16 @@ class GithubAPIConnector(BaseConnector):
         res = GetPRMetaResponse(
             title=pr_meta.get("title", ""),
             body=pr_meta.get("body", ""),
-            patch_text=patch_text
+            patch_text=patch_text,
+            author=pr_meta.get("user", {}).get("login", "[unknown]")
         )
         return res
+    
+    def do_comment_on_pr(self, payload: CommentOnPRPayload):
+        headers = {
+            "Authorization": f"Bearer {payload.token}",
+            "Accept": "application/vnd.github+json"
+        }
+
+        url = f"https://api.github.com/repos/{payload.repo_name}/issues/{payload.pr_number}/comments"
+        httpx.post(url, headers=headers, json={"body": payload.description})
