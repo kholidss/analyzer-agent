@@ -24,9 +24,6 @@ class Fields:
     
 
 def add_caller_info(logger, method_name, event_dict):
-    if "event" in event_dict:
-        event_dict["message"] = event_dict.pop("event")
-    
     for frame_info in inspect.stack():
         filepath = frame_info.filename
         if all(x not in filepath for x in ("structlog", "logging", "logger.py")):
@@ -34,10 +31,10 @@ def add_caller_info(logger, method_name, event_dict):
             event_dict["line"] = frame_info.lineno
             event_dict["function"] = frame_info.function
             break
-    
+
     event_dict["level"] = event_dict.get("level", method_name.upper())
     event_dict["message"] = event_dict.get("message", "No message provided")
-    
+
     return event_dict
 
 
@@ -70,20 +67,22 @@ class AppCtxLogger:
         self.fields.append(key, value)
 
     def info(self, message, **kwargs):
-        self._log("info", message, **kwargs)
+        self._stdout("info", message, **kwargs)
 
     def warning(self, message, **kwargs):
-        self._log("warning", message, **kwargs)
+        self._stdout("warning", message, **kwargs)
 
     def error(self, message, **kwargs):
-        self._log("error", message, **kwargs)
+        self._stdout("error", message, **kwargs)
 
     def debug(self, message, **kwargs):
-        self._log("debug", message, **kwargs)
+        self._stdout("debug", message, **kwargs)
     
-    def _log(self, level, message, **kwargs):
+    def _stdout(self, level, message, **kwargs):
         for key, value in kwargs.items():
             self.fields.append(key, value)
 
         log_method = getattr(self.logger, level.lower(), self.logger.info)
-        log_method(message, **self.fields.to_dict())
+
+        log_method(message=message, event=self.fields.to_dict())
+
