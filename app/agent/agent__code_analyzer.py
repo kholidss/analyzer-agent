@@ -11,7 +11,7 @@ class CodeAnalyzerEvaluateParam:
     pr_patch: str
 
 class CodeAnalyzer(BaseAgent):
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str = "gemma3:1b") -> None:
         super().__init__(model_name=model_name)
         self.analysis_prompt: str = (
         "Please review this Pull Request in a **simple, friendly, and helpful** tone.\n\n"

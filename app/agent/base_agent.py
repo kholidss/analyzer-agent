@@ -1,10 +1,11 @@
 from langchain_ollama import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_core.runnables import RunnableSequence
 
 class BaseAgent:
     def __init__(self, model_name: str = "gemma3:1b") -> None:
-        self.llm: OllamaLLM = OllamaLLM(model=model_name)
+        print(f"🚀 Initializing CodeAnalyzer with model: {model_name}")
+        self.llm: OllamaLLM = OllamaLLM(model=model_name, temperature=0.3)
         self.prompt: ChatPromptTemplate = None
         self.analysis_prompt: str = None
         self.invoke_parameter: dict = None
