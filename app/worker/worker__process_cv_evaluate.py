@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-import re
 
 from app.agent.agent__code_analyzer import *
+from app.agent.agent__cv_evaluator import *
 from app.agent.agent__solving_exam import *
 from app.logger import AppCtxLogger
 
@@ -10,17 +10,18 @@ import os
 
 
 @dataclass
-class TaskSolvingExamFromPDFPayload:
+class TaskCVEvaluateWorkerFromPDFPayload:
     temp_pdf_path: str
+    result_method: str
 
 
-class SolvingExamWorker():
-    def __init__(self, solving_exam_agent: SolvingExam):
-        self.solving_exam_agent = solving_exam_agent
+class CVEvaluateWorker():
+    def __init__(self, cv_evaluator_agent: CVEvaluator):
+        self.cv_evaluator_agent = cv_evaluator_agent
 
-    def task_solving_exam_from_pdf(self, payload: TaskSolvingExamFromPDFPayload):
+    def task_cv_evaluate_from_pdf(self, payload: TaskCVEvaluateWorkerFromPDFPayload):
         lg = AppCtxLogger()
-        lg.event_name("TaskSolvingExamFromPDF")
+        lg.event_name("TaskCVEvaluateWorkerFromPDF")
 
         try:
             extracted_pdf = extract_text_from_pdf(payload.temp_pdf_path)
@@ -35,9 +36,9 @@ class SolvingExamWorker():
             if payload.temp_pdf_path and os.path.exists(payload.temp_pdf_path):
                 os.remove(payload.temp_pdf_path)
 
-        self.solving_exam_agent.set_prompt(type="answer")
-        answer_result = self.solving_exam_agent.exec_answer(SolvingExamParam(
-            question=extracted_pdf
+        self.cv_evaluator_agent.set_prompt(type="answer", analysis_goal=payload.result_method)
+        answer_result = self.cv_evaluator_agent.exec_evaluate(CVEvaluatorParam(
+            cv_text=extracted_pdf
         ))
 
         result = f"{answer_result}"
