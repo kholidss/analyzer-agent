@@ -4,7 +4,8 @@ from app.agent.agent__code_analyzer import CodeAnalyzer
 from app.agent.agent__cv_evaluator import CVEvaluator
 from app.agent.agent__solving_exam import SolvingExam
 from app.connector.connector__github_api import GithubAPIConnector
-from app.core.config import Config, config, get_config
+from app.core.config import config, get_config
+from app.pkg.pkg__google_doc import GoogleDocPkg
 from app.service.service__code_review import CodeReviewService
 from app.service.service__cv_evaluate import CVEvaluateService
 from app.service.service__solving_exam import SolvingExamService
@@ -22,12 +23,15 @@ class Container(containers.DeclarativeContainer):
         ]
     )
 
+    cfg = get_config()
     # db = providers.Singleton(Database, db_url=configs.DATABASE_URI)
 
     # Connector
     github_api_conn = providers.Singleton(GithubAPIConnector)
 
-    cfg = get_config()
+    # Pkg
+    google_doc_pkg = providers.Singleton(GoogleDocPkg,path_service_account="service_account.json")
+
 
     # LLM Agent
     code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
@@ -36,7 +40,7 @@ class Container(containers.DeclarativeContainer):
 
     # Worker dispatcher
     code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)
-    solving_exam_worker = providers.Singleton(SolvingExamWorker, solving_exam_agent=solving_exam_agent)
+    solving_exam_worker = providers.Singleton(SolvingExamWorker, solving_exam_agent=solving_exam_agent, google_doc_pkg=google_doc_pkg)
     cv_evaluate_worker = providers.Singleton(CVEvaluateWorker, cv_evaluator_agent=cv_evaluator_agent)
 
     # Service

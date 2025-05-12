@@ -5,6 +5,7 @@ from app.agent.agent__code_analyzer import *
 from app.agent.agent__solving_exam import *
 from app.logger import AppCtxLogger
 
+from app.pkg.pkg__google_doc import GoogleDocPkg, WriteDocParam
 from app.util.pdf import extract_text_from_pdf
 import os
 
@@ -12,11 +13,13 @@ import os
 @dataclass
 class TaskSolvingExamFromPDFPayload:
     temp_pdf_path: str
+    result_doc_title: str
 
 
 class SolvingExamWorker():
-    def __init__(self, solving_exam_agent: SolvingExam):
+    def __init__(self, solving_exam_agent: SolvingExam, google_doc_pkg: GoogleDocPkg):
         self.solving_exam_agent = solving_exam_agent
+        self.google_doc_pkg = google_doc_pkg
 
     def task_solving_exam_from_pdf(self, payload: TaskSolvingExamFromPDFPayload):
         lg = AppCtxLogger()
@@ -40,9 +43,14 @@ class SolvingExamWorker():
             question=extracted_pdf
         ))
 
-        result = f"{answer_result}"
+        try:
+                wr = self.google_doc_pkg.write_doc(WriteDocParam(content=answer_result, doc_title=payload.result_doc_title))
+                result_url = wr.get_result_doc_url_edit()
+                print("result_url ===>>> ", result_url)
+                lg.info("finished task")
+                return
+        except Exception as e:
+            lg.error("got error from write answer to google doc api", error=e)
+            return
 
-        print("result ==<<< ", result)
-
-        lg.info("finished task")
 

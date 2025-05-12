@@ -14,8 +14,13 @@ path_solve = APIRouter(
 
 @path_solve.post("/exam-pdf")
 @inject
-async def solving_exam_from_pdf(background_tasks: BackgroundTasks, pdf_file: UploadFile = File(...), service: SolvingExamService = Depends(Provide[Container.solving_exam_svc])):
-    req = SolvingExamFromPDFRequest(pdf_file=pdf_file)
+async def solving_exam_from_pdf(
+    background_tasks: BackgroundTasks,
+    pdf_file: UploadFile = File(...),
+    result_doc_title: str = Form(""),
+    service: SolvingExamService = Depends(Provide[Container.solving_exam_svc])
+):
+    req = SolvingExamFromPDFRequest(pdf_file=pdf_file, result_doc_title=result_doc_title)
     try:
         return await service.solving_exam_from_pdf(req, background_tasks)
     except Exception as e:

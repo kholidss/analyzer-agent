@@ -9,7 +9,6 @@ class BaseAgent:
         if mode == "api":
             if not base_url and not api_key:
                 raise ValueError(f"Mode '{mode}' must be provided with 'base_url' and 'api_key'.")
-            print("model_name ===>>> ", model_name)
             self.llm = ChatOpenAI(
                 model=model_name,
                 openai_api_key=api_key,

@@ -6,7 +6,6 @@ from fastapi import BackgroundTasks
 
 from app.entity.entity_solving_exam import SolvingExamFromPDFRequest
 from app.logger import AppCtxLogger
-from app.transform import class_to_dict
 from app.worker.worker__process_code_analyzer import *
 from fastapi.concurrency import run_in_threadpool
 from app.util.context import *
@@ -38,7 +37,8 @@ class SolvingExamService:
 
 
         worker_payload = TaskSolvingExamFromPDFPayload(
-            temp_pdf_path=tmp_path
+            temp_pdf_path=tmp_path,
+            result_doc_title=request.result_doc_title
         )
         background_tasks.add_task(run_in_threadpool, self.solving_exam_worker.task_solving_exam_from_pdf, worker_payload)
 

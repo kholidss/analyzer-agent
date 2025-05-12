@@ -10,3 +10,7 @@ dependency-injector==4.39.1
 structlog==25.3.0
 langchain==0.3.25
 langchain-openai==0.3.16
+google-api-python-client==2.169.0
+google-auth==2.40.1
+google-auth-oauthlib==1.2.2
+google-auth-httplib2==0.2.0
