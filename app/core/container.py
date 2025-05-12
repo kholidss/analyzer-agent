@@ -9,6 +9,7 @@ from app.pkg.pkg__google_doc import GoogleDocPkg
 from app.service.service__code_review import CodeReviewService
 from app.service.service__cv_evaluate import CVEvaluateService
 from app.service.service__solving_exam import SolvingExamService
+from app.service.service__web_crawl import WebCrawlService
 from app.worker.worker__process_code_analyzer import CodeAnalyzerWorker
 from app.worker.worker__process_cv_evaluate import CVEvaluateWorker
 from app.worker.worker__process_solving_exam import SolvingExamWorker
@@ -20,6 +21,7 @@ class Container(containers.DeclarativeContainer):
             "app.router.v1.router_v1__code_review",
             "app.router.v1.router_v1__solve",
             "app.router.v1.router_v1__evaluate",
+            "app.router.v1.router_v1__web_crawl",
         ]
     )
 
@@ -56,4 +58,8 @@ class Container(containers.DeclarativeContainer):
     cv_evalute_svc = providers.Singleton(
         CVEvaluateService,
         cv_evaluate_worker=cv_evaluate_worker
+    )
+    web_crawl_svc = providers.Singleton(
+        WebCrawlService,
+        cfg=cfg
     )
