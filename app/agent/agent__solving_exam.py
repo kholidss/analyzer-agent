@@ -9,20 +9,34 @@ class SolvingExamParam:
     question: str
 
 class SolvingExam(BaseAgent):
-    def __init__(self, model_name: str = "gemma3:1b") -> None:
-        super().__init__(model_name=model_name)
+    def __init__(
+        self,
+        model_name: str = "gemma:1b",
+        mode: str = "local",
+        base_url: str = None,
+        api_key: str = None
+    ) -> None:
+        super().__init__(model_name=model_name, mode=mode, base_url=base_url, api_key=api_key)
         self.analysis_prompt: str = (
-        "Bacalah soal berikut dan pilih atau isi jawaban yang paling tepat. Jika soal melibatkan operasi perhitungan atau matematika, selesaikan sesuai dengan aturan matematika yang berlaku. Jawabannya harus disertai langkah-langkah yang jelas.\n\n"
-        "Jika soal berupa pilihan ganda, pilih salah satu jawaban dengan menjelaskan alasan dari pemilihan tersebut.\n\n"
+        "Bacalah soal berikut dan pilih atau isi jawaban yang paling tepat. Jika soal melibatkan operasi perhitungan atau matematika, selesaikan sesuai dengan aturan matematika yang berlaku, dan gunakan format diketahui, ditanya, dan lansung kerjakan dengan cara yang praktis tanpa ada kata-kata\n\n"
         "Jawaban harus seolah - olah bukan jawaban dari AI.\n\n"
+        "Diakhir sesi, kamu jangan tanyakan kembali sebuah pertanyaan\n\n"
         )
 
     def exec_answer(self, param: SolvingExamParam) -> str:
         chain: RunnableSequence = self.prompt | self.llm
-        return chain.invoke({
+        result = chain.invoke({
             "question": param.question,
             "analysis_prompt": self.analysis_prompt
         })
+
+        if hasattr(result, "content"):
+            return result.content
+
+        if isinstance(result, dict) and "content" in result:
+            return result["content"]
+        
+        return result
 
     def set_prompt(self, type: str = "answer", analysis_goal: str = ""):
         if type == "train":

@@ -11,8 +11,14 @@ class CodeAnalyzerEvaluateParam:
     pr_patch: str
 
 class CodeAnalyzer(BaseAgent):
-    def __init__(self, model_name: str = "gemma3:1b") -> None:
-        super().__init__(model_name=model_name)
+    def __init__(
+        self,
+        model_name: str = "gemma:1b",
+        mode: str = "local",
+        base_url: str = None,
+        api_key: str = None
+    ) -> None:
+        super().__init__(model_name=model_name, mode=mode, base_url=base_url, api_key=api_key)
         self.analysis_prompt: str = (
         "Please review this Pull Request in a **simple, friendly, and helpful** tone.\n\n"
         "Keep your response concise and use bullet points with emojis.\n\n"
@@ -32,12 +38,20 @@ class CodeAnalyzer(BaseAgent):
 
     def exec_evaluate(self, param: CodeAnalyzerEvaluateParam) -> str:
         chain: RunnableSequence = self.prompt | self.llm
-        return chain.invoke({
+        result =  chain.invoke({
             "pr_title": param.pr_title,
             "pr_body": param.pr_body,
             "pr_patch": param.pr_patch,
             "analysis_prompt": self.analysis_prompt
         })
+
+        if hasattr(result, "content"):
+            return result.content
+
+        if isinstance(result, dict) and "content" in result:
+            return result["content"]
+        
+        return result
 
     def set_prompt(self, type: str = "evaluate", analysis_goal: str = ""):
         if type == "train":

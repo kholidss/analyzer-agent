@@ -24,8 +24,8 @@ class Container(containers.DeclarativeContainer):
     github_api_conn = providers.Singleton(GithubAPIConnector)
 
     # LLM Agent
-    code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_MODEL_COMMON)
-    solving_exam_agent = providers.Singleton(SolvingExam, model_name=config.LLM_MODEL_COMMON)
+    code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_MODEL_COMMON, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
+    solving_exam_agent = providers.Singleton(SolvingExam, model_name=config.LLM_MODEL_COMMON, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
 
     # Worker dispatcher
     code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)

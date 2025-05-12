@@ -1,11 +1,25 @@
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_core.runnables import RunnableSequence
+from langchain_openai import ChatOpenAI
 
 class BaseAgent:
-    def __init__(self, model_name: str = "gemma3:1b") -> None:
+    def __init__(self, model_name: str, mode: str = "local", base_url: str = None, api_key: str = None):
         print(f"🚀 Initializing CodeAnalyzer with model: {model_name}")
-        self.llm: OllamaLLM = OllamaLLM(model=model_name, temperature=0.3)
+        if mode == "api":
+            if not base_url and not api_key:
+                raise ValueError(f"Mode '{mode}' must be provided with 'base_url' and 'api_key'.")
+            self.llm = ChatOpenAI(
+                model=model_name,
+                openai_api_key=api_key,
+                openai_api_base=base_url,
+                streaming=False
+            )
+        elif mode == "local":
+            self.llm = OllamaLLM(model=model_name, temperature=0.3)
+        else:
+            raise ValueError(f"Mode '{mode}' is not recognized. Use 'api' or 'local'.")
+        
         self.prompt: ChatPromptTemplate = None
         self.analysis_prompt: str = None
         self.invoke_parameter: dict = None

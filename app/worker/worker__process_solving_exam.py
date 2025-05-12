@@ -1,12 +1,9 @@
 from dataclasses import dataclass
+import re
 
 from app.agent.agent__code_analyzer import *
 from app.agent.agent__solving_exam import *
 from app.logger import AppCtxLogger
-
-from app.connector.connector__github_api import CommentOnPRPayload, GithubAPIConnector
-from fastapi import UploadFile
-import tempfile
 
 from app.util.pdf import extract_text_from_pdf
 import os
@@ -38,7 +35,6 @@ class SolvingExamFromWorker():
             if payload.temp_pdf_path and os.path.exists(payload.temp_pdf_path):
                 os.remove(payload.temp_pdf_path)
 
-        print("extracted_pdf ==>>> ", extracted_pdf)
         self.solving_exam_agent.set_prompt(type="answer")
         answer_result = self.solving_exam_agent.exec_answer(SolvingExamParam(
             question=extracted_pdf
@@ -46,6 +42,7 @@ class SolvingExamFromWorker():
 
         result = f"{answer_result}"
 
+        print("result ==<<< ", result)
+
         lg.info("finished task")
-        print(result)
 

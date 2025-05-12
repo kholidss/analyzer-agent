@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 
 from app.agent.agent__code_analyzer import *
 from app.logger import AppCtxLogger
@@ -45,7 +46,7 @@ class CodeAnalyzerWorker():
         result += f"Authored by: {payload.author}\n\n"
         result += f"{evaluated_result}"
 
-        lg.info("finished task")
+        print("result ===<< ", result)
 
         comment_pr_payload = CommentOnPRPayload(repo_name=payload.repo_name, pr_number=payload.pr_number, token=payload.access_token, description=result)
 

@@ -15,6 +15,9 @@ class Config(BaseSettings):
 
     # LLM
     LLM_MODEL_COMMON: str = os.getenv("LLM_COMMON_MODEL", "gemma3:1b")
+    LLM_MODE: str = os.getenv("LLM_MODE", "local")
+    LLM_API_BASE_URL: str = os.getenv("LLM_API_BASE_URL", "")
+    LLM_API_API_KEY: str = os.getenv("LLM_API_API_KEY", "")
 
     # GITHUB
     GITHUB_API_BASE_URL: str = os.getenv("GITHUB_API_BASE_URL", "")
