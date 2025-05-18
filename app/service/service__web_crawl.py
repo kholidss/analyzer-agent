@@ -26,7 +26,6 @@ class WebCrawlService:
         self.cfg = cfg
         self.extract_markdown_to_json_worker = extract_markdown_to_json_worker
         self.display = Display(visible=0, size=(1920, 1080))
-        self.display.start()
 
     async def single_web_crawl(self, request: SingleWebCrawlRequest, background_tasks: BackgroundTasks):
         lg = AppCtxLogger()
@@ -49,24 +48,45 @@ class WebCrawlService:
                 "Chrome/124.0.0.0 Safari/537.36"
             )
 
-            driver = uc.Chrome(options=options, headless=False)
-            driver.get(request.target_url)
+            max_retries = 3
+            html = None
+            error_last = None
 
-            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-            time.sleep(5)
+            self.display.start()
 
-            driver.implicitly_wait(15)
+            for attempt in range(1, max_retries + 1):
+                try:
+                    driver = uc.Chrome(options=options, headless=False)
+                    driver.get(request.target_url)
 
-            # Scroll down 2x to load lazyload
-            scroll_pause_time = 3
-            for _ in range(2):
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(scroll_pause_time)
+                    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                    time.sleep(5)
+                    driver.implicitly_wait(15)
 
-            html = driver.page_source
+                    # Scroll down 2x to load lazyload
+                    scroll_pause_time = 3
+                    for _ in range(2):
+                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(scroll_pause_time)
 
-            driver.quit()
+                    html = driver.page_source
+                    driver.quit()
+                    break  # break out of retry loop if successful
+
+                except Exception as e:
+                    lg.error(f"attempt {attempt} failed to crawl", error=e)
+                    error_last = e
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    time.sleep(2)  # optional: wait a bit before retry
+
             self.display.stop()
+
+            if html is None:
+                lg.error("Failed all retry attempts", error=error_last)
+                return ctxResp.with_code(500).json()
 
             soup = BeautifulSoup(html, "html.parser")
 
@@ -95,7 +115,7 @@ class WebCrawlService:
                 json_result=request.json_result,
                 clue=request.clue
             )
-            background_tasks.add_task(run_in_threadpool, self.extract_markdown_to_json_worker.task_transform_to_json, worker_payload)
+            # background_tasks.add_task(run_in_threadpool, self.extract_markdown_to_json_worker.task_transform_to_json, worker_payload)
 
         except Exception as e:
             lg.error("error crawl", error=e)
