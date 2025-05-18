@@ -8,7 +8,7 @@ from app.agent.base_agent import BaseAgent
 class TransformToJSONParam:
     source: str
     source_type: str
-    json_result: str
+    json_result_format: str
     clue: str = ""
 
 class TransformToJSON(BaseAgent):
@@ -31,7 +31,7 @@ class TransformToJSON(BaseAgent):
             "analysis_prompt": analysis_prompt,
             "source": param.source,
             "source_type": param.source_type,
-            "json_result": param.json_result,
+            "json_result_format": param.json_result_format,
             "clue": param.clue,
         })
 
@@ -63,7 +63,7 @@ class TransformToJSON(BaseAgent):
 
                 "Expected JSON Output Format:
 
-                {json_result}
+                {json_result_format}
 
                 "Clue(optional)":
 

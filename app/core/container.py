@@ -11,7 +11,7 @@ from app.service.service__code_review import CodeReviewService
 from app.service.service__cv_evaluate import CVEvaluateService
 from app.service.service__solving_exam import SolvingExamService
 from app.service.service__web_crawl import WebCrawlService
-from app.worker.worker__extract_markdown_to_json import TransformToJSONWorker
+from app.worker.worker__processs_web_crawler import WebCrawlerWorker
 from app.worker.worker__process_code_analyzer import CodeAnalyzerWorker
 from app.worker.worker__process_cv_evaluate import CVEvaluateWorker
 from app.worker.worker__process_solving_exam import SolvingExamWorker
@@ -47,7 +47,7 @@ class Container(containers.DeclarativeContainer):
     code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)
     solving_exam_worker = providers.Singleton(SolvingExamWorker, solving_exam_agent=solving_exam_agent, google_doc_pkg=google_doc_pkg)
     cv_evaluate_worker = providers.Singleton(CVEvaluateWorker, cv_evaluator_agent=cv_evaluator_agent)
-    extract_markdown_to_json_worker = providers.Singleton(TransformToJSONWorker, extract_markdown_to_json_agent=extract_markdown_to_json_agent)
+    extract_markdown_to_json_worker = providers.Singleton(WebCrawlerWorker, extract_markdown_to_json_agent=extract_markdown_to_json_agent)
 
     # Service
     code_review_svc = providers.Singleton(

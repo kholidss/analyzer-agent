@@ -4,9 +4,10 @@ from typing import List, Optional
 
 class SingleWebCrawlRequest(BaseModel):
     target_url: str
-    json_result: str
+    json_result_format: str
     clue: Optional[str] = None
-    crawl_source_format: Optional[str] = "html"
+    current_transaction_attempt: Optional[int] = 1
+    max_retry: Optional[int] = 1
 
 
 class IndonesianCitizenCrawlDetailResponse(BaseModel):
