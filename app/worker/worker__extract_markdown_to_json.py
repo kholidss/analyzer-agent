@@ -37,10 +37,11 @@ class TransformToJSONWorker():
         clean_result = json_result.replace("`", "")
         clean_result = clean_result.replace("json", "")
 
+        print("before result ==>>> ", clean_result)
         data_dict = json.loads(clean_result)
 
-        print(data_dict['pricelist'][0])  
+        # print(data_dict['pricelist'][0])  
 
-        print("result ===<< ", clean_result)
+        print("result ===<< ", data_dict)
 
     

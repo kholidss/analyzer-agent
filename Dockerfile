@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED 1
 # Create app dir
 WORKDIR /app
 
-# Install system dependencies including Chromium dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     poppler-utils \
@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     xdg-utils \
     ca-certificates \
+    xvfb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -39,7 +40,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright and Chromium
+# Install Playwright and Chromium (optional, if you still need Playwright)
 RUN pip install --no-cache-dir playwright && \
     python -m playwright install chromium
 
