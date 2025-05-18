@@ -1,19 +1,30 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.core.config import config
+from app.core.config import config, get_config
 from app.core.container import Container
 from app.middleware.middleware__request_id import RequestContextMiddleware
+from app.telegram.telegram__listener import TelegramAssistantListener
 from app.util.class_object import singleton
 from app.router.v1.base_router import routers as v1_route
+from contextlib import asynccontextmanager
+import asyncio
 
 
 @singleton
 class AppContext:
     def __init__(self):
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            cfg = get_config()
+            bot = TelegramAssistantListener(cfg=cfg)
+            asyncio.create_task(bot.run())
+            yield
+
         # set app default
         self.app = FastAPI(
             title=config.APP_NAME,
+            lifespan=lifespan
         )
 
         # reques_id middlewar

@@ -19,6 +19,11 @@ class Config(BaseSettings):
     # GITHUB
     GITHUB_API_BASE_URL: str = os.getenv("GITHUB_API_BASE_URL", "")
 
+    # TELEGRAM
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
+
+    SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY")
+
     class Config:
         env_file = ".env"
         case_sensitive = True
