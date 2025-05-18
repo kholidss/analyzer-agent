@@ -1,23 +1,24 @@
 from app.agent.agent__code_analyzer import *
 from app.connector.connector__github_api import *
-from app.core.config import Config, get_config
+from app.core.config import Config
 from app.entity.entity__base_response import AppCtxResponse
 from fastapi import BackgroundTasks
 
-from app.entity.entity__web_crawl import CityDensityData, CityDensityTable, IndonesianCitizenCrawlResponse, SingleWebCrawlRequest
+from app.entity.entity__web_crawl import CityDensityData, CityDensityTable, SingleWebCrawlRequest
 from app.logger import AppCtxLogger
 from app.transform import class_to_dict
+from app.worker.worker__extract_markdown_to_json import TransformToJSONWorker, TaskTransformToJSONPayload
 from app.worker.worker__process_code_analyzer import *
 from fastapi.concurrency import run_in_threadpool
 from app.util.context import *
-from crawl4ai.extraction_strategy import LLMExtractionStrategy
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, LLMConfig
-import json
+from bs4 import BeautifulSoup, Comment
+import undetected_chromedriver as uc
 
 
 class WebCrawlService:
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, extract_markdown_to_json_worker: TransformToJSONWorker):
         self.cfg = cfg
+        self.extract_markdown_to_json_worker = extract_markdown_to_json_worker
 
     async def single_web_crawl(self, request: SingleWebCrawlRequest, background_tasks: BackgroundTasks):
         lg = AppCtxLogger()
@@ -26,25 +27,43 @@ class WebCrawlService:
         ctxResp = AppCtxResponse()
 
         try:
-            crawl_config = CrawlerRunConfig(
-                exclude_external_images=True,
-                cache_mode=CacheMode.BYPASS,
-                table_score_threshold=2,
+            options = uc.ChromeOptions()
+            options.add_argument("--start-maximized")
+
+            driver = uc.Chrome(options=options, headless=True)
+            driver.get(request.target_url)
+
+            # Wait until finish load
+            driver.implicitly_wait(15)
+
+            html = driver.page_source
+            driver.quit()
+            soup = BeautifulSoup(html, "html.parser")
+
+            # 1. Delete unused element
+            for tag in soup(["script", "style", "img", "meta", "link", "noscript"]):
+                tag.decompose()
+
+            # 2. Hapus komentar HTML
+            for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
+                comment.extract()
+
+            for tag in soup.find_all():
+                if not tag.get_text(strip=True):  # Tidak ada teks bermakna
+                    tag.decompose()
+
+            cleaned_html = soup.prettify()
+
+            print(cleaned_html)
+
+            worker_payload = TaskTransformToJSONPayload(
+                source_type="html",
+                source=cleaned_html,
+                json_result=request.json_result,
+                clue=request.clue
             )
+            background_tasks.add_task(run_in_threadpool, self.extract_markdown_to_json_worker.task_transform_to_json, worker_payload)
 
-            browser_cfg = BrowserConfig(headless=True)
-
-            async with AsyncWebCrawler(config=browser_cfg) as crawler:
-                result = await crawler.arun(
-                    url=request.target_url,
-                    config=crawl_config
-                )
-
-                if result.success:
-
-                    # table = transform_table_data(result.tables[0])
-                    parsed_table = transform_city_density_table(result.tables[1])
-                    print("parsed ==>>> ", parsed_table)
         except Exception as e:
             lg.error("error crawl", error=e)
             return ctxResp.with_code(500).json()

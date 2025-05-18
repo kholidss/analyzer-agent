@@ -14,17 +14,17 @@ import asyncio
 @singleton
 class AppContext:
     def __init__(self):
-        @asynccontextmanager
-        async def lifespan(app: FastAPI):
-            cfg = get_config()
-            bot = TelegramAssistantListener(cfg=cfg)
-            asyncio.create_task(bot.run())
-            yield
+        # @asynccontextmanager
+        # async def lifespan(app: FastAPI):
+        #     cfg = get_config()
+        #     bot = TelegramAssistantListener(cfg=cfg)
+        #     asyncio.create_task(bot.run())
+        #     yield
 
         # set app default
         self.app = FastAPI(
             title=config.APP_NAME,
-            lifespan=lifespan
+            # lifespan=lifespan
         )
 
         # reques_id middlewar
