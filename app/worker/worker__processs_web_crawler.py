@@ -56,49 +56,14 @@ class WebCrawlerWorker():
         lg.field("payload.max_retry", payload.max_retry)
 
         try:
-            html = None
             error_last = None
             dic_json_result = None
-
+            print("max retry ==>>> ", payload.max_retry)
 
             for attempt in range(1, payload.max_retry + 1):
                 try:
-                    self.display.start()
-                    self.uc_chrome.get(payload.target_url)
-
-                    WebDriverWait(self.uc_chrome, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-                    time.sleep(5)
-                    self.uc_chrome.implicitly_wait(15)
-
-                    # Scroll down 2x to load lazyload
-                    scroll_pause_time = 3
-                    for _ in range(2):
-                        self.uc_chrome.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                        time.sleep(scroll_pause_time)
-
-                    html = self.uc_chrome.page_source
-                    self.uc_chrome.quit()
-                    self.display.stop()
-
-                    soup = BeautifulSoup(html, "html.parser")
-
-                    # Remove specific HTML tag
-                    for tag in soup(["script", "style", "img", "meta", "link", "noscript"]):
-                        tag.decompose()
-
-                    # Remove A with property HREF HTML tag
-                    for a in soup.find_all("a", href=True):
-                        a.unwrap()
-
-                    for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
-                        comment.extract()
-
-                    for tag in soup.find_all():
-                        if not tag.get_text(strip=True):
-                            tag.decompose()
-
-                    cleaned_html = soup.prettify()
-
+                    print("attempt ==>>> ", attempt)
+                    cleaned_html = self.__start_stealth_craw_with_html_output(payload.target_url, 1)
                     print(cleaned_html)
 
                     self.extract_markdown_to_json_agent.set_prompt(type="transform")
@@ -120,14 +85,10 @@ class WebCrawlerWorker():
 
                 except Exception as e:
                     error_last = e
-                    try:
-                        self.uc_chrome.quit()
-                    except Exception:
-                        pass
-                    time.sleep(5)  # optional: wait a bit before retry
+                    time.sleep(5)  # Wait a bit before retry
 
         except Exception as e:
-            lg.error("error crawl", error=e)
+            lg.error("error crawl or decode response to json reach max retry", error=e)
         finally:
             webhook_status = "malformed"
 
@@ -138,5 +99,49 @@ class WebCrawlerWorker():
                 webhook_status = "success"
 
             print("call webhook with status=", webhook_status)
+
+    def __start_stealth_craw_with_html_output(self, target_url: str, max_window_scroll: int = 2) -> str:
+        try:
+            self.display.start()
+            self.uc_chrome.get(target_url)
+
+            WebDriverWait(self.uc_chrome, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            time.sleep(5)
+            self.uc_chrome.implicitly_wait(15)
+
+            # Scroll down to load lazyload
+            scroll_pause_time = 2
+            for _ in range(max_window_scroll):
+                self.uc_chrome.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(scroll_pause_time)
+
+            html = self.uc_chrome.page_source
+            self.uc_chrome.quit()
+            self.display.stop()
+
+            soup = BeautifulSoup(html, "html.parser")
+
+            # Remove specific HTML tag
+            for tag in soup(["script", "style", "img", "meta", "link", "noscript"]):
+                tag.decompose()
+
+            # Remove A with property HREF HTML tag
+            for a in soup.find_all("a", href=True):
+                a.unwrap()
+
+            for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
+                comment.extract()
+
+            for tag in soup.find_all():
+                if not tag.get_text(strip=True):
+                    tag.decompose()
+
+            return soup.prettify()
+        finally:
+            try:
+                self.uc_chrome.quit()
+                self.display.stop()
+            except Exception:
+                pass
 
     
