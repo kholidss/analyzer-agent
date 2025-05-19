@@ -45,8 +45,6 @@ class WebCrawlerWorker():
             "Chrome/124.0.0.0 Safari/537.36"
         )
     
-        self.uc_chrome = uc.Chrome(options=options, headless=False)
-
     def task_single_crawl(self, payload: TaskWebCrawlerPayload):
         lg = AppCtxLogger()
         lg.event_name("TaskSingleCraw")
@@ -84,6 +82,7 @@ class WebCrawlerWorker():
                     break  # break out of retry loop if successful
 
                 except Exception as e:
+                    print("errr ==>>>> ", e)
                     error_last = e
                     time.sleep(5)  # Wait a bit before retry
 
@@ -101,31 +100,43 @@ class WebCrawlerWorker():
             print("call webhook with status=", webhook_status)
 
     def __start_stealth_craw_with_html_output(self, target_url: str, max_window_scroll: int = 2) -> str:
+        display = Display(visible=0, size=(1920, 1080))
+        uc_chrome = None
         try:
-            self.display.start()
-            self.uc_chrome.get(target_url)
+            display.start()
 
-            WebDriverWait(self.uc_chrome, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            options = uc.ChromeOptions()
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--lang=en-US")
+            options.add_argument(
+                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            )
+
+            uc_chrome = uc.Chrome(options=options, headless=False)
+            uc_chrome.get(target_url)
+
+            WebDriverWait(uc_chrome, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
             time.sleep(5)
-            self.uc_chrome.implicitly_wait(15)
+            uc_chrome.implicitly_wait(15)
 
-            # Scroll down to load lazyload
-            scroll_pause_time = 2
             for _ in range(max_window_scroll):
-                self.uc_chrome.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(scroll_pause_time)
+                uc_chrome.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
 
-            html = self.uc_chrome.page_source
-            self.uc_chrome.quit()
-            self.display.stop()
+            html = uc_chrome.page_source
 
             soup = BeautifulSoup(html, "html.parser")
 
-            # Remove specific HTML tag
             for tag in soup(["script", "style", "img", "meta", "link", "noscript"]):
                 tag.decompose()
 
-            # Remove A with property HREF HTML tag
             for a in soup.find_all("a", href=True):
                 a.unwrap()
 
@@ -138,10 +149,9 @@ class WebCrawlerWorker():
 
             return soup.prettify()
         finally:
-            try:
-                self.uc_chrome.quit()
-                self.display.stop()
-            except Exception:
-                pass
+            if uc_chrome:
+                uc_chrome.quit()
+            display.stop()
+
 
     
