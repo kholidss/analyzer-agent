@@ -27,8 +27,8 @@ class TaskWebCrawlerPayload:
 
 
 class WebCrawlerWorker():
-    def __init__(self, extract_markdown_to_json_agent: TransformToJSON):
-        self.extract_markdown_to_json_agent = extract_markdown_to_json_agent
+    def __init__(self, transform_to_json_agent: TransformToJSON):
+        self.transform_to_json_agent = transform_to_json_agent
         self.display = Display(visible=0, size=(1920, 1080))
 
         options = uc.ChromeOptions()
@@ -64,16 +64,7 @@ class WebCrawlerWorker():
                     cleaned_html = self.__start_stealth_craw_with_html_output(payload.target_url, 1)
                     print(cleaned_html)
 
-                    self.extract_markdown_to_json_agent.set_prompt(type="transform")
-                    raw_json = self.extract_markdown_to_json_agent.exec_transform(TransformToJSONParam(
-                        source=cleaned_html,
-                        source_type="html",
-                        json_result_format=payload.json_result_format,
-                        clue=payload.clue,
-                    ))
-
-                    raw_json = raw_json.replace("`", "")
-                    raw_json = raw_json.replace("json", "")
+                    raw_json = self.__transform_to_json_with_agent(cleaned_html, payload.json_result_format, payload.clue)
 
                     print("raw result ==>>> ", raw_json)
                     dic_json_result = json.loads(raw_json)
@@ -152,6 +143,19 @@ class WebCrawlerWorker():
             if uc_chrome:
                 uc_chrome.quit()
             display.stop()
+
+    def __transform_to_json_with_agent(self, html: str, json_result_format: str, clue: str) -> str:
+        self.transform_to_json_agent.set_prompt(type="transform")
+        raw_json = self.transform_to_json_agent.exec_transform(TransformToJSONParam(
+            source=html,
+            source_type="html",
+            json_result_format=json_result_format,
+            clue=clue,
+        ))
+
+        raw_json = raw_json.replace("`", "")
+        raw_json = raw_json.replace("json", "")
+        return raw_json
 
 
     

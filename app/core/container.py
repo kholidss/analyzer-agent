@@ -41,13 +41,13 @@ class Container(containers.DeclarativeContainer):
     code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
     solving_exam_agent = providers.Singleton(SolvingExam, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
     cv_evaluator_agent = providers.Singleton(CVEvaluator, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
-    extract_markdown_to_json_agent = providers.Singleton(TransformToJSON, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
+    transform_to_json_agent = providers.Singleton(TransformToJSON, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
 
     # Worker dispatcher
     code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)
     solving_exam_worker = providers.Singleton(SolvingExamWorker, solving_exam_agent=solving_exam_agent, google_doc_pkg=google_doc_pkg)
     cv_evaluate_worker = providers.Singleton(CVEvaluateWorker, cv_evaluator_agent=cv_evaluator_agent)
-    extract_markdown_to_json_worker = providers.Singleton(WebCrawlerWorker, extract_markdown_to_json_agent=extract_markdown_to_json_agent)
+    extract_markdown_to_json_worker = providers.Singleton(WebCrawlerWorker, transform_to_json_agent=transform_to_json_agent)
 
     # Service
     code_review_svc = providers.Singleton(
