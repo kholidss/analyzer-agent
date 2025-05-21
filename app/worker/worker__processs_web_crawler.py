@@ -29,7 +29,6 @@ class TaskWebCrawlerPayload:
 class WebCrawlerWorker():
     def __init__(self, extract_markdown_to_json_agent: TransformToJSON):
         self.extract_markdown_to_json_agent = extract_markdown_to_json_agent
-        self.display = Display(visible=0, size=(1920, 1080))
 
         options = uc.ChromeOptions()
         options.add_argument("--start-maximized")
