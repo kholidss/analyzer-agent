@@ -11,21 +11,12 @@ from app.worker.worker__processs_web_crawler import WebCrawlerWorker, TaskWebCra
 from app.worker.worker__process_code_analyzer import *
 from fastapi.concurrency import run_in_threadpool
 from app.util.context import *
-from bs4 import BeautifulSoup, Comment
-import undetected_chromedriver as uc
-import time
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-from pyvirtualdisplay import Display
 
 
 class WebCrawlService:
     def __init__(self, cfg: Config, extract_markdown_to_json_worker: WebCrawlerWorker):
         self.cfg = cfg
         self.extract_markdown_to_json_worker = extract_markdown_to_json_worker
-        self.display = Display(visible=0, size=(1920, 1080))
 
     async def single_web_crawl(self, request: SingleWebCrawlRequest, background_tasks: BackgroundTasks):
         lg = AppCtxLogger()
@@ -45,10 +36,6 @@ class WebCrawlService:
 
         except Exception as e:
             lg.error("error crawl", error=e)
-            try:
-                self.display.stop()
-            except Exception:
-                pass
             return ctxResp.with_code(500).json()
 
         lg.info("success processed single web data crawler")

@@ -29,21 +29,6 @@ class TaskWebCrawlerPayload:
 class WebCrawlerWorker():
     def __init__(self, transform_to_json_agent: TransformToJSON):
         self.transform_to_json_agent = transform_to_json_agent
-        self.display = Display(visible=0, size=(1920, 1080))
-
-        options = uc.ChromeOptions()
-        options.add_argument("--start-maximized")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-infobars")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--lang=en-US")
-        options.add_argument(
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        )
     
     def task_single_crawl(self, payload: TaskWebCrawlerPayload):
         lg = AppCtxLogger()
@@ -156,6 +141,3 @@ class WebCrawlerWorker():
         raw_json = raw_json.replace("`", "")
         raw_json = raw_json.replace("json", "")
         return raw_json
-
-
-    
