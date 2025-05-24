@@ -76,7 +76,7 @@ class TelegramAssistant(BaseAgent):
         response = self.llm.invoke(prompt)
         intent = response.content.strip().lower()
         print("intent ===>>> ", intent)
-        return {**state, "intent": intent}
+        return {**state, "intent": clean_routing_response(intent)}
 
     def route_intent(self, state: "TelegramAssistant.State"):
         return state["intent"]
@@ -166,3 +166,18 @@ def clean_content_from_markdown(text: str) -> str:
         text = re.sub(r'`(.*?)`', r'\1', text)        # `inline code`
 
         return text
+
+def clean_routing_response(response: str) -> str:
+        # Remove markdown code blocks
+        response = re.sub(r'```\w*\n?', '', response)
+        response = re.sub(r'```', '', response)
+        
+        # Remove extra whitespace and newlines
+        response = response.strip()
+        
+        # If response contains multiple lines, take the first non-empty line
+        lines = [line.strip() for line in response.split('\n') if line.strip()]
+        if lines:
+            response = lines[0]
+        
+        return response.lower()

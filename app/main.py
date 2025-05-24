@@ -9,31 +9,56 @@ from app.util.class_object import singleton
 from app.router.v1.base_router import routers as v1_route
 from contextlib import asynccontextmanager
 import asyncio
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @singleton
 class AppContext:
     def __init__(self):
-        # @asynccontextmanager
-        # async def lifespan(app: FastAPI):
-        #     cfg = get_config()
-        #     bot = TelegramAssistantListener(cfg=cfg)
-        #     asyncio.create_task(bot.run())
-        #     yield
+        self.bot_instance = None
+        self.bot_task = None
+        
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            # Startup
+            try:
+                cfg = get_config()
+                self.bot_instance = TelegramAssistantListener(cfg=cfg)
+                self.bot_task = asyncio.create_task(self.bot_instance.run())
+                logger.info("Telegram bot task created")
+                yield
+            except Exception as e:
+                logger.error(f"Error during startup: {e}")
+                raise
+            finally:
+                # Shutdown
+                logger.info("Shutting down application...")
+                if self.bot_task:
+                    self.bot_task.cancel()
+                    try:
+                        await self.bot_task
+                    except asyncio.CancelledError:
+                        logger.info("Bot task cancelled")
+                
+                if self.bot_instance:
+                    await self.bot_instance.shutdown()
+                
+                logger.info("Application shutdown complete")
 
         # set app default
         self.app = FastAPI(
             title=config.APP_NAME,
-            # lifespan=lifespan
+            lifespan=lifespan
         )
 
-        # reques_id middlewar
+        # request_id middleware
         self.app.add_middleware(RequestContextMiddleware)
 
         # set db and container
         self.container = Container()
-        # self.db = self.container.db()
-        # self.db.create_database()
 
         # set cors
         self.app.add_middleware(
@@ -47,12 +72,17 @@ class AppContext:
         # set routes
         @self.app.get("/")
         def root():
-            return "service is running"
+            return {"message": "service is running", "bot_status": "active" if self.bot_instance and self.bot_instance._running else "inactive"}
+
+        @self.app.get("/health")
+        def health():
+            return {
+                "status": "healthy",
+                "bot_running": self.bot_instance._running if self.bot_instance else False
+            }
 
         self.app.include_router(v1_route, prefix="/api/v1")
-
 
 app_creator = AppContext()
 app = app_creator.app
 container = app_creator.container
-
