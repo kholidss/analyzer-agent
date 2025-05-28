@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
-load_dotenv()
+load_dotenv(override=True)
 
 class Config(BaseSettings):
     # APP
@@ -23,6 +23,12 @@ class Config(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
 
     SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY")
+
+    DB_NAME: str  = os.getenv("DB_NAME", "db_name")
+    DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
+    DB_PORT: str = os.getenv("DB_PORT", "5432")
+    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "yoursecurepassword")
 
     class Config:
         env_file = ".env"

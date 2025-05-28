@@ -4,6 +4,7 @@ from app.agent.agent__code_analyzer import CodeAnalyzer
 from app.agent.agent__cv_evaluator import CVEvaluator
 from app.agent.agent__transform_to_json import TransformToJSON
 from app.agent.agent__solving_exam import SolvingExam
+from app.bootstrap.bootstrap__postgres import BootstrapPostgres
 from app.connector.connector__github_api import GithubAPIConnector
 from app.core.config import config, get_config
 from app.pkg.pkg__google_doc import GoogleDocPkg
@@ -28,7 +29,9 @@ class Container(containers.DeclarativeContainer):
     )
 
     cfg = get_config()
+
     # db = providers.Singleton(Database, db_url=configs.DATABASE_URI)
+    # db = providers.Object(object())
 
     # Connector
     github_api_conn = providers.Singleton(GithubAPIConnector)

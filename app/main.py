@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+from app.bootstrap.bootstrap__postgres import BootstrapPostgres
 from app.core.config import config, get_config
 from app.core.container import Container
 from app.middleware.middleware__request_id import RequestContextMiddleware
@@ -26,7 +27,15 @@ class AppContext:
             # Startup
             try:
                 cfg = get_config()
-                self.bot_instance = TelegramAssistantListener(cfg=cfg)
+
+                # Init db
+                db_instance = BootstrapPostgres(cfg)
+                await db_instance.connect()
+
+                # self.container = Container()
+                # self.container.db.override(db_instance)
+
+                self.bot_instance = TelegramAssistantListener(cfg=cfg, db=db_instance)
                 self.bot_task = asyncio.create_task(self.bot_instance.run())
                 logger.info("Telegram bot task created")
                 yield
@@ -43,9 +52,10 @@ class AppContext:
                     except asyncio.CancelledError:
                         logger.info("Bot task cancelled")
                 
-                if self.bot_instance:
-                    await self.bot_instance.shutdown()
-                
+                # Close DB connection
+                if 'db_instance' in locals():
+                    await db_instance.close()
+
                 logger.info("Application shutdown complete")
 
         # set app default

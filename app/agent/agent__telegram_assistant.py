@@ -8,11 +8,13 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
+from tabulate import tabulate
+from app.bootstrap.bootstrap__postgres import BootstrapPostgres
 
 class TelegramAssistant(BaseAgent):
     class State(TypedDict):
         input: str
-        intent: Optional[Literal["search", "health_analysis", "unknown"]]
+        intent: Optional[Literal["search", "health_analysis", "search_postgresql_data", "unknown"]]
         output: Optional[str]
 
     def __init__(
@@ -21,9 +23,14 @@ class TelegramAssistant(BaseAgent):
         mode: str = "local",
         base_url: str = None,
         api_key: str = None,
-        serpapi_api_key: str = None
+        serpapi_api_key: str = None,
+        db: BootstrapPostgres= None,
     ) -> None:
         super().__init__(model_name=model_name, mode=mode, base_url=base_url, api_key=api_key)
+
+        self.db = db.conn
+
+        self.schema_tables = db.table_schema()
         
         self.analysis_prompt: str = (
             "Bacalah soal berikut dan pilih atau isi jawaban yang paling tepat. Jika soal melibatkan operasi perhitungan atau matematika, selesaikan sesuai dengan aturan matematika yang berlaku, dan gunakan format diketahui, ditanya, dan lansung kerjakan dengan cara yang praktis tanpa ada kata-kata\n\n"
@@ -41,7 +48,8 @@ class TelegramAssistant(BaseAgent):
 
         self.tools = {
             "search": self.search_tool.run,
-            "health_analysis": lambda x: "Berikut analisa kesehatan berdasarkan masukan Anda: " + x
+            "health_analysis": lambda x: "Berikut analisa kesehatan berdasarkan masukan Anda: " + x + "\n\n",
+            "search_postgresql_data": lambda x: "Berikut hasil data berdasarkan masukan Anda: " + x + "\n\n",
         }
 
         # Build LangGraph workflow
@@ -49,16 +57,19 @@ class TelegramAssistant(BaseAgent):
         self.workflow.add_node("detect_intent", self.detect_intent)
         self.workflow.add_node("search", self.handle_search)
         self.workflow.add_node("health_analysis", self.handle_health)
+        self.workflow.add_node("search_postgresql_data", self.handle_search_postgresql)
         self.workflow.add_node("unknown", self.handle_unknown)
 
         self.workflow.set_entry_point("detect_intent")
         self.workflow.add_conditional_edges("detect_intent", self.route_intent, {
             "search": "search",
             "health_analysis": "health_analysis",
+            "search_postgresql_data": "search_postgresql_data",
             "unknown": "unknown",
         })
         self.workflow.add_edge("search", END)
         self.workflow.add_edge("health_analysis", END)
+        self.workflow.add_edge("search_postgresql_data", END)
         self.workflow.add_edge("unknown", END)
 
         self.graph_executor = self.workflow.compile()
@@ -69,9 +80,10 @@ class TelegramAssistant(BaseAgent):
             "Intent tersedia:\n"
             "- search → jika ingin mencari riset atau informasi\n"
             "- health_analysis → jika ingin analisa tentang kesehatan\n"
+            "- search_postgresql_data → jika ingin mencari data pada database postgresql\n"
             "- unknown → jika tidak cocok\n"
             f"User input: {state['input']}\n"
-            "Balas hanya dengan: search, health_analysis, atau unknown."
+            "Balas hanya dengan: search, health_analysis, search_postgresql_data, atau unknown."
         )
         response = self.llm.invoke(prompt)
         intent = response.content.strip().lower()
@@ -125,6 +137,45 @@ class TelegramAssistant(BaseAgent):
         input_text = state["input"]
         result = self.tools["health_analysis"](input_text)
         return {**state, "output": result}
+    
+    def handle_search_postgresql(self, state: "TelegramAssistant.State") -> "TelegramAssistant.State":
+        summarization_prompt = (
+            "Berikut adalah skema tabel dan kolom PostgreSQL saat ini:\n"
+            f"{self.schema_tables}\n\n"
+            "Berikut adalah data atau informasi yang ingin dicari:\n"
+            f"{state['input']}\n\n"
+            "Tolong berikan query SQL yang sesuai untuk pencarian tersebut. "
+            "Hanya balas dengan query SQL tanpa penjelasan tambahan."
+        )
+        
+        raw_query = self.llm.invoke(summarization_prompt).content.strip()
+        print("raw_query ==>>> ", raw_query)
+        clean_query = clean_sql_markdown(raw_query)
+        print("clean_query ==>>> ", clean_query)
+
+        result = self.execute_sql(clean_query)
+        result = self.tools["search_postgresql_data"](result)
+        print("rr ==>>> ", result)
+        
+        return {**state, "output": result}
+    
+    def execute_sql(self, sql_query):
+        with self.db.cursor() as cursor:
+            cursor.execute(sql_query)
+            # Get column names
+            columns = [desc[0] for desc in cursor.description]
+            # Fetch all rows
+            results = cursor.fetchall()
+            print("result ==>>> ", results)
+
+        # Format the output as a string
+        lines = [", ".join(columns)]  # Add the column names as the header
+        for row in results:
+            # Convert each row to a comma-separated string
+            lines.append(", ".join(str(cell) for cell in row))
+
+        # Join all lines with a newline character
+        return "\n".join(lines)
 
     def handle_unknown(self, state: "TelegramAssistant.State") -> "TelegramAssistant.State":
         return {**state, "output": "Perintah tidak ditemukan."}
@@ -166,6 +217,11 @@ def clean_content_from_markdown(text: str) -> str:
         text = re.sub(r'`(.*?)`', r'\1', text)        # `inline code`
 
         return text
+
+def clean_sql_markdown(text: str) -> str:
+    text = re.sub(r"```sql\s*", "", text)
+    text = re.sub(r"```", "", text)
+    return text.strip()
 
 def clean_routing_response(response: str) -> str:
         # Remove markdown code blocks
