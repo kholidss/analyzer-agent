@@ -76,19 +76,56 @@ class TelegramAssistant(BaseAgent):
 
     def detect_intent(self, state: "TelegramAssistant.State") -> "TelegramAssistant.State":
         prompt = (
-            "Tentukan intent pengguna berdasarkan input berikut.\n"
-            "Intent tersedia:\n"
-            "- search → jika ingin mencari riset atau informasi\n"
-            "- health_analysis → jika ingin analisa tentang kesehatan\n"
-            "- search_postgresql_data → jika ingin mencari data pada database postgresql\n"
-            "- unknown → jika tidak cocok\n"
+            "Determine the user's intent based on the following input.\n"
+            "Available intents:\n"
+            "- search → if they want to search for research or information\n"
+            "- health_analysis → if they want health analysis\n"
+            "- search_postgresql_data → if they want to search data in a postgresql database\n"
+            "- unknown → if it doesn't match any of the above\n"
             f"User input: {state['input']}\n"
-            "Balas hanya dengan: search, health_analysis, search_postgresql_data, atau unknown."
+            "Your response must be in this format:\n"
+            "```answer\n"
+            "ONE OF: search, health_analysis, search_postgresql_data, unknown\n"
+            "```"
         )
         response = self.llm.invoke(prompt)
-        intent = response.content.strip().lower()
+        intent_text = response.content.strip().lower()
+
+        print("intent_text ==>>> ", intent_text)
+        
+        # Extract intent from the ```answer ... ``` block
+        match = re.search(r'```answer\s*(.*?)\s*```', intent_text, re.DOTALL)
+        if match:
+            extracted_text = match.group(1).strip().lower()
+            
+            # Check for each intent specifically, with longer matches first to avoid partial matches
+            if "search_postgresql_data" in extracted_text:
+                intent = "search_postgresql_data"
+            elif "health_analysis" in extracted_text:
+                intent = "health_analysis"
+            elif "search" in extracted_text:
+                intent = "search"
+            elif "unknown" in extracted_text:
+                intent = "unknown"
+            else:
+                intent = "unknown"  # Default if no valid intent found
+        else:
+            # Fallback if no answer block is found
+            if "search_postgresql_data" in intent_text:
+                intent = "search_postgresql_data"
+            elif "health_analysis" in intent_text:
+                intent = "health_analysis"
+            elif "search" in intent_text:
+                intent = "search"
+            elif "unknown" in intent_text:
+                intent = "unknown"
+            else:
+                intent = "unknown"
+        
         print("intent ===>>> ", intent)
-        return {**state, "intent": clean_routing_response(intent)}
+        return {**state, "intent": intent}
+
+
 
     def route_intent(self, state: "TelegramAssistant.State"):
         return state["intent"]
@@ -160,22 +197,27 @@ class TelegramAssistant(BaseAgent):
         return {**state, "output": result}
     
     def execute_sql(self, sql_query):
-        with self.db.cursor() as cursor:
-            cursor.execute(sql_query)
-            # Get column names
-            columns = [desc[0] for desc in cursor.description]
-            # Fetch all rows
-            results = cursor.fetchall()
-            print("result ==>>> ", results)
+        try:
+            with self.db.cursor() as cursor:
+                cursor.execute(sql_query)
+                # Get column names
+                columns = [desc[0] for desc in cursor.description]
+                # Fetch all rows
+                results = cursor.fetchall()
 
-        # Format the output as a string
-        lines = [", ".join(columns)]  # Add the column names as the header
-        for row in results:
-            # Convert each row to a comma-separated string
-            lines.append(", ".join(str(cell) for cell in row))
+            # Format the output as a string
+            lines = [", ".join(columns)]  # Add the column names as the header
+            for row in results:
+                # Convert each row to a comma-separated string
+                lines.append(", ".join(str(cell) for cell in row))
 
-        # Join all lines with a newline character
-        return "\n".join(lines)
+            return "\n".join(lines)
+
+        except Exception as e:
+            # Rollback the transaction to reset the state
+            self.db.rollback()
+            return f"Error executing SQL query: {e}"
+
 
     def handle_unknown(self, state: "TelegramAssistant.State") -> "TelegramAssistant.State":
         return {**state, "output": "Perintah tidak ditemukan."}

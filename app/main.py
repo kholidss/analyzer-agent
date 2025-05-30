@@ -21,6 +21,8 @@ class AppContext:
     def __init__(self):
         self.bot_instance = None
         self.bot_task = None
+        self.db_instance = None
+        self.container = Container()
         
         @asynccontextmanager
         async def lifespan(app: FastAPI):
@@ -29,13 +31,18 @@ class AppContext:
                 cfg = get_config()
 
                 # Init db
-                db_instance = BootstrapPostgres(cfg)
-                await db_instance.connect()
+                self.db_instance = BootstrapPostgres(cfg)
+                await self.db_instance.connect()
+
+                self.container.db.override(self.db_instance)
+
+                app.state.container = self.container
+                app.state.db = self.db_instance
 
                 # self.container = Container()
                 # self.container.db.override(db_instance)
 
-                self.bot_instance = TelegramAssistantListener(cfg=cfg, db=db_instance)
+                self.bot_instance = TelegramAssistantListener(cfg=cfg, db=self.db_instance)
                 self.bot_task = asyncio.create_task(self.bot_instance.run())
                 logger.info("Telegram bot task created")
                 yield
@@ -53,8 +60,9 @@ class AppContext:
                         logger.info("Bot task cancelled")
                 
                 # Close DB connection
-                if 'db_instance' in locals():
-                    await db_instance.close()
+                if self.db_instance:
+                    await self.db_instance.close()
+                    logger.info("Database connection closed")
 
                 logger.info("Application shutdown complete")
 

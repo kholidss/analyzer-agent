@@ -29,6 +29,7 @@ class Container(containers.DeclarativeContainer):
     )
 
     cfg = get_config()
+    db = providers.Dependency(BootstrapPostgres)
 
     # db = providers.Singleton(Database, db_url=configs.DATABASE_URI)
     # db = providers.Object(object())
