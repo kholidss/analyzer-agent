@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-
 from app.agent.agent__code_analyzer import *
 from app.agent.agent__transform_to_json import TransformToJSON, TransformToJSONParam
 from app.logger import AppCtxLogger
-
 from app.connector.connector__github_api import CommentOnPRPayload, GithubAPIConnector
 import json
 import time
@@ -18,8 +16,6 @@ from pyvirtualdisplay import Display
 @dataclass
 class TaskWebCrawlerPayload:
     target_url: str
-    json_result_format: str
-    clue: str
     json_result_format: str
     clue: str
     current_transaction_attempt: int = 1
@@ -92,10 +88,15 @@ class WebCrawlerWorker():
             options.add_argument(
                 "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
+                "Chrome/136.0.7103.92 Safari/537.36"
             )
-
-            uc_chrome = uc.Chrome(options=options, headless=False)
+            
+            uc_chrome = uc.Chrome(
+                options=options, 
+                headless=False,
+                version_main=136  # Chrome version
+            )
+            
             uc_chrome.get(target_url)
 
             WebDriverWait(uc_chrome, 20).until(EC.presence_of_element_located((By.TAG_NAME, "body")))

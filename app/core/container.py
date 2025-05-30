@@ -4,7 +4,7 @@ from app.agent.agent__code_analyzer import CodeAnalyzer
 from app.agent.agent__cv_evaluator import CVEvaluator
 from app.agent.agent__transform_to_json import TransformToJSON
 from app.agent.agent__solving_exam import SolvingExam
-from app.bootstrap.bootstrap__postgres import BootstrapPostgres
+from app.bootstrap.bootstrap__postgres import PersistencePostgreSQL
 from app.connector.connector__github_api import GithubAPIConnector
 from app.core.config import config, get_config
 from app.pkg.pkg__google_doc import GoogleDocPkg
@@ -29,7 +29,7 @@ class Container(containers.DeclarativeContainer):
     )
 
     cfg = get_config()
-    db = providers.Dependency(BootstrapPostgres)
+    db = providers.Dependency(PersistencePostgreSQL)
 
     # db = providers.Singleton(Database, db_url=configs.DATABASE_URI)
     # db = providers.Object(object())
@@ -45,7 +45,7 @@ class Container(containers.DeclarativeContainer):
     code_analyzer_agent = providers.Singleton(CodeAnalyzer, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
     solving_exam_agent = providers.Singleton(SolvingExam, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
     cv_evaluator_agent = providers.Singleton(CVEvaluator, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
-    transform_to_json_agent = providers.Singleton(TransformToJSON, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY)
+    transform_to_json_agent = providers.Singleton(TransformToJSON, model_name=config.LLM_GENERAL_MODEL, mode=config.LLM_MODE, base_url=config.LLM_API_BASE_URL, api_key=config.LLM_API_API_KEY, db=db)
 
     # Worker dispatcher
     code_analyzer_worker = providers.Singleton(CodeAnalyzerWorker, code_analize_agent=code_analyzer_agent, github_api_conn=github_api_conn)

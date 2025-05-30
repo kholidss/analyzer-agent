@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 from tabulate import tabulate
-from app.bootstrap.bootstrap__postgres import BootstrapPostgres
+from app.bootstrap.bootstrap__postgres import PersistencePostgreSQL
 
 class TelegramAssistant(BaseAgent):
     class State(TypedDict):
@@ -24,7 +24,7 @@ class TelegramAssistant(BaseAgent):
         base_url: str = None,
         api_key: str = None,
         serpapi_api_key: str = None,
-        db: BootstrapPostgres= None,
+        db: PersistencePostgreSQL= None,
     ) -> None:
         super().__init__(model_name=model_name, mode=mode, base_url=base_url, api_key=api_key)
 

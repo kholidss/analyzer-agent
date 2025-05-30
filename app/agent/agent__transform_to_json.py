@@ -3,6 +3,7 @@ from langchain_core.runnables import RunnableSequence
 from dataclasses import dataclass
 
 from app.agent.base_agent import BaseAgent
+from app.bootstrap.bootstrap__postgres import PersistencePostgreSQL
 
 @dataclass
 class TransformToJSONParam:
@@ -17,31 +18,36 @@ class TransformToJSON(BaseAgent):
         model_name: str = "gemma:1b",
         mode: str = "local",
         base_url: str = None,
-        api_key: str = None
+        api_key: str = None,
+        db: PersistencePostgreSQL = None
     ) -> None:
         super().__init__(model_name=model_name, mode=mode, base_url=base_url, api_key=api_key)
         self.analysis_prompt: str = None
+        self.db = db.conn
 
     def exec_transform(self, param: TransformToJSONParam) -> str:
         chain: RunnableSequence = self.prompt | self.llm
         analysis_prompt = (
             f"Convert the following {param.source_type} into a valid JSON format. Respond ONLY with the resulting JSON. Do not include any explanations or additional text.\n\n"
         )
-        result = chain.invoke({
-            "analysis_prompt": analysis_prompt,
-            "source": param.source,
-            "source_type": param.source_type,
-            "json_result_format": param.json_result_format,
-            "clue": param.clue,
-        })
+        # result = chain.invoke({
+        #     "analysis_prompt": analysis_prompt,
+        #     "source": param.source,
+        #     "source_type": param.source_type,
+        #     "json_result_format": param.json_result_format,
+        #     "clue": param.clue,
+        # })
 
-        if hasattr(result, "content"):
-            return result.content
+        self.execute_sql()
 
-        if isinstance(result, dict) and "content" in result:
-            return result["content"]
+        # if hasattr(result, "content"):
+        #     return result.content
 
-        return result
+        # if isinstance(result, dict) and "content" in result:
+        #     return result["content"]
+
+        # return result
+        return "sss"
 
     def set_prompt(self, type: str = "transform", analysis_goal: str = ""):
         if type == "train":
@@ -70,3 +76,20 @@ class TransformToJSON(BaseAgent):
                 {clue}
                 """)
             ])
+
+
+    def execute_sql(self):
+        try:
+            with self.db.cursor() as cursor:
+                cursor.execute("""SELECT * FROM "order" LIMIT 1""")
+                # Get column names
+                # Fetch all rows
+                results = cursor.fetchall()
+            
+            print("SQL ==>>>> ", results)
+
+        except Exception as e:
+            # Rollback the transaction to reset the state
+            print("errrr sql ==>>>> ", e)
+            self.db.rollback()
+            return f"Error executing SQL query: {e}"

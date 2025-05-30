@@ -13,13 +13,13 @@ from telegram.ext import (
 )
 from telegram import Update
 from app.agent.agent__telegram_assistant import TelegramAssistant
-from app.bootstrap.bootstrap__postgres import BootstrapPostgres
+from app.bootstrap.bootstrap__postgres import PersistencePostgreSQL
 from app.core.config import Config, get_config
 
 
 
 class TelegramAssistantListener:
-    def __init__(self, cfg: Config, db: BootstrapPostgres):
+    def __init__(self, cfg: Config, db: PersistencePostgreSQL):
         self.token = cfg.TELEGRAM_BOT_TOKEN
         self.app: Application = ApplicationBuilder().token(self.token).build()
 

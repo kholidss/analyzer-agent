@@ -7,7 +7,7 @@ from app.core.config import Config
 import psycopg
 from psycopg import Connection 
 
-class BootstrapPostgres:
+class PersistencePostgreSQL:
     def __init__(
         self,
         cfg: Config,
